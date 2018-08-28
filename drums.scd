@@ -1,40 +1,35 @@
 (
 ~drums = Dictionary.new(n: 19);
 /* DRUM NAMES
-Crash1
-Crash2
-HHClsdLH
-HHClsdRH
-HHOpn
-HHPed
-HHSmiOpn
+Crash1 Crash2
+HHClsdLH HHClsdRH HHOpn HHPed HHSmiOpn
 Kick
-Ride
-RideBell
-SnareHrdLH
-SnareHrdRH
-SnareLH
-SnareRH
-SnareRim
-Tom1LH
-Tom1RH
-Tom2LH
-Tom2RH
+Ride RideBell
+SnareHrdLH SnareHrdRH SnareLH SnareRH SnareRim
+Tom1LH Tom1RH Tom2LH Tom2RH
 */
 
 p = Platform.userHomeDir +/+ "projects/supercollider/samples/CLudwig/";
 PathName.new(path: p).filesDo({ | item |
-	var nameA = item.fileNameWithoutExtension.split($-);
-	var name = nameA[0].asSymbol;
-	var samples = ~drums.atFail(name, {
-		List.new;
-	});
-	~drums.put(name, samples.add(item));
+	var name = item.fileName.split($-)[0].asSymbol;
+	var samples = ~drums.atFail(name, { List.new });
+	~drums.put(name, samples.add(Buffer.read(s, item.fullPath )));
 });
 
-~drums.keys.do({|item|
-	~drums.at(item).postln;
+x = SynthDef("tutorial-PlayBuf",{ arg out = 0, bufnum;
+    Out.ar( out,
+        PlayBuf.ar(2, bufnum, BufRateScale.kr(bufnum))
+    )
 });
+
+~drums.keys.do({ | item |
+	~drums.at(item).do({ | i |
+		i.postln;
+		x.play(s, [\bufnum, i]);
+	});
+});
+
+x.free;
 currentEnvironment.clear;
 )
 
