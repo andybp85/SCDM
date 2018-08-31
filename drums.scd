@@ -12,26 +12,31 @@ p = Platform.userHomeDir +/+ "projects/supercollider/samples/CLudwig/";
 PathName.new(path: p).filesDo({ | item |
 	var name = item.fileName.split($-)[0].asSymbol;
 	var samples = ~drums.atFail(name, { List.new });
-	~drums.put(name, samples.add(Buffer.read(s, item.fullPath )));
+	var buf = Buffer.read(s, item.fullPath );
+	buf.postln;
+	~drums.put(name.asSymbol, samples.add(buf));
 });
 
-x = SynthDef(\player, { arg  out = 0, bufnum, channels;
+~drums.postln;
+)
+
+(
+SynthDef(\player, { arg  out = 0, bufnum;
     Out.ar( out,
-        PlayBuf.ar(2, bufnum, BufRateScale.kr(bufnum))
+		PlayBuf.ar(2, bufnum, BufRateScale.kr(bufnum))
     )
-});
+}).add;
 )
 
 (
 // PLAYER
-~drums.keys.do({ | item |
-	~drums.at(item)[0].postln;
-	x.play(s, [\bufnum, ~drums.at(item)[0]]);
-	/*~drums.at(item).do({ | i |
-		i.postln;
-		// x.play(s, [\bufnum, i]);
-	});*/
-});
+p = Pbind(
+        // Use \harpsi, not \default
+    \instrument, \player,
+	\bufnum, Prand(~drums.at(\Kick), 32),
+	// \degree, Pseries(0, 1, 8),-
+    \dur, 0.25
+).play;
 
 )
 
@@ -43,6 +48,10 @@ x = SynthDef(\player, { arg  out = 0, bufnum, channels;
 	});
 });
 
+~drums.postln;
+)
+
+(
 x.free;
 currentEnvironment.clear;
 )
