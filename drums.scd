@@ -53,23 +53,27 @@ SynthDef(\player, { arg  out = 0, bufnum;
 (
 TempoClock.default.tempo = 174 / 60;
 // PLAYER
-Pbind(
+~kick = Pbind(
     \instrument, \player,
-    \bufnum, Pwrand(~drums.at(\CLudwigKick_Dyn), ~weights.at(\CLudwigKick_Dyn), 16),
-    \dur, Pseq([2.5, 1.5], 16)
-).play;
+    \bufnum, Pwrand(~drums.at(\CLudwigKick_Dyn), ~weights.at(\CLudwigKick_Dyn), 2),
+    \dur, Pseq([2.5, 1.5], 2)
+);
 
-Pbind(
+~snare = Pbind(
     \instrument, \player,
-    \bufnum, Pwrand(~drums.at(\Rodgers_DynRH), ~weights.at(\Rodgers_DynRH), 32),
-    \dur, Pseq([Rest(1), 1, Rest(1), 1], 32)
-).play;
+    \bufnum, Pwrand(~drums.at(\Rodgers_DynRH), ~weights.at(\Rodgers_DynRH), 4),
+    \dur, Pseq([Rest(1), 1, Rest(1), 1], 4)
+);
 
-Pbind(
+~hats = Pbind(
     \instrument, \player,
-    \bufnum, Pwrand(~drums.at(\ZildMstrsnd_DynClsdRH), ~weights.at(\ZildMstrsnd_DynClsdRH), 32),
-).play;
+    \bufnum, Pwrand(~drums.at(\ZildMstrsnd_DynClsdRH), ~weights.at(\ZildMstrsnd_DynClsdRH), 8),
+    \dur, 0.5
+);
 )
+
+p = Ppar([~kick, ~snare, ~hats], 16).play;
+p.stop;
 
 (
 // CLEANUP
