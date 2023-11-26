@@ -18,6 +18,8 @@ s.boot;
     numbers;
 };
 
+/* MAKE SURE: use cleanup code below before re-evaluating this or you can run out of Buffers
+*/
 ~kit = Dictionary.new(n: 19);
 /* DRUMS, Dyn Levels
 [ SabHHXEvo20_Dyn, 16 ]
@@ -40,7 +42,7 @@ s.boot;
 [ ZildMstrsnd_DynClsdRH, 16 ]
 [ ZildMstrsnd_DynOpn, 16 ]
 */
-p = Platform.userHomeDir +/+ "Projects/samples/CLudwig/";
+p = Platform.userHomeDir +/+ "Projects/supercollider/samples/CLudwig/";
 PathName.new(path: p).filesDo({ | item |
     var fname = item.fileName.split($.)[0];
     var dynData = fname.findRegexp("[0-9]{2}").last;
@@ -59,38 +61,34 @@ SynthDef(\player, { arg  out = 0, bufnum;
 )
 
 (
-TempoClock.default.tempo = 174 / 60;
-// PLAYER
-~kick = Pbind(
-    \instrument, \player,
-    \bufnum, Pwrand(~kit.at(\CLudwigKick_Dyn), ~weights.at(\CLudwigKick_Dyn), 2),
-    \dur, Pseq([2.5, 1.5], 2)
-);
+// CLEANUP
+~kit.keys.do({ | item |
+    ~kit.at(item).do({ | i |
+        i.free;
+    });
+});
 
-~snare = Pbind(
-    \instrument, \player,
-    \bufnum, Pwrand(~kit.at(\Rodgers_DynRH), ~weights.at(\Rodgers_DynRH), 4),
-    \dur, Pseq([Rest(1), 1, Rest(1), 1], 4)
-);
-
-~hats = Pbind(
-    \instrument, \player,
-    \bufnum, Pwrand(~kit.at(\ZildMstrsnd_DynClsdRH), ~weights.at(\ZildMstrsnd_DynClsdRH), 8),
-    \dur, 0.5
-);
+~kit.postln;
 )
-
-p = Ppar([~kick, ~snare, ~hats], 16).play;
-p.stop;
 
 
 (
 /*
 PLAY DRUMS
+
+patterns: also see below
+\rythm: regular drum beat
+\dynamics: pick the drum hits the samples, 0 being hardest
+\hardest, \softest: see List.copyRange
+\weights: used by Pwrand to pick samples to play, see docs. helper ~calcWeights above
+\seq: canb either be an array to be passed to Pseq, or a completely different sequence
+\repeats: used by Pwrand (and Pseq if \seq is an array)
+\fill: genrally turnaround. can be nil. same spec as above. will be played once at the end of
+however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
 */
 ~playDrums = { | patterns, bpm = 120, bars = 8, length = inf |
     var rhythmKit = patterns[\rhythm];
-    var fillKit = patterns[if(patterns[\fill].isNil) { \rhythm } { \fill }];
+    var fillKit = patterns[if (patterns[\fill].isNil) { \rhythm } { \fill }];
     var rhythm = Ppar(rhythmKit.keys.collect({ | key |
         var dynamics = rhythmKit[key][\dynamics];
         var repeats = rhythmKit[key][\repeats];
@@ -114,7 +112,7 @@ PLAY DRUMS
                 dynamics[\weights],
                 repeats
             ),
-            \dur, Pseq(fillKit[key][\seq], repeats)
+			\dur, if (fillKit[key][\seq].isArray) { Pseq(fillKit[key][\seq], repeats) } { fillKit[key][\seq] }
         );
     }), 1);
     TempoClock.default.tempo = bpm / 60;
@@ -164,17 +162,17 @@ PLAY DRUMS
         \CLudwigKick_Dyn: (
             \dynamics: (
                 \hardest: 0,
-                \softest: 2,
-                \weights: ~calcWeights.value(3)
+                \softest: 1,
+                \weights: ~calcWeights.value(1)
             ),
             \seq: [1],
             \repeats: 4
         ),
         \Rodgers_DynLH: (
             \dynamics: (
-                \hardest: 0,
+                \hardest: 1,
                 \softest: 2,
-                \weights: ~calcWeights.value(3)
+                \weights: ~calcWeights.value(2)
             ),
             \seq: [Rest(1), 1, Rest(1), 1],
             \repeats: 4
@@ -185,32 +183,48 @@ PLAY DRUMS
                 \softest: 6,
                 \weights: ~calcWeights.value(3)
             ),
-            \seq: [1, Rest(0.5), 0.5],
+			\seq: [Rest(1), 0.65, 0.35],
             \repeats: 6
         ),
         \ZildMstrsnd_DynSmiOpn: (
             \dynamics: (
-                \hardest: 4,
-                \softest: 6,
-                \weights: ~calcWeights.value(3)
+                \hardest: 3,
+                \softest: 4,
+                \weights: ~calcWeights.value(2)
             ),
-            \seq: [Rest(1), 0.5, Rest(0.5)],
-            \repeats: 6
+            \seq: [1, Rest(1)],
+            \repeats: 4
         ),
-    )
+    ),
+	\fill: (
+		\CLudwigKick_Dyn: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 1,
+                \weights: ~calcWeights.value(1)
+            ),
+            \seq: [1],
+            \repeats: 4
+        ),
+        \Rodgers_DynLH: (
+            \dynamics: (
+                \hardest: 1,
+                \softest: 2,
+                \weights: ~calcWeights.value(2)
+            ),
+            \seq: [Rest(1), 1, Rest(1), 1],
+            \repeats: 4
+        ),
+		\Rodgers_DynLH: (
+            \dynamics: (
+                \hardest: 1,
+                \softest: 2,
+                \weights: ~calcWeights.value(2)
+            ),
+            \seq: Prand(~kit[\Rodgers_DynLH], 6)
+        )
+	)
 );
 
-~playDrums.value(patterns: ~swing, bpm: 120).play;
-)
-
-(
-// CLEANUP
-~kit.keys.do({ | item |
-    ~kit.at(item).do({ | i |
-        i.free;
-    });
-});
-
-~kit.postln;
-
+~playDrums.value(patterns: ~swing, bpm: 180, bars: 4).play;
 )
