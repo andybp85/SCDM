@@ -22,25 +22,25 @@ s.boot;
 */
 ~kit = Dictionary.new(n: 19);
 /* DRUMS, Dyn Levels
-[ SabHHXEvo20_Dyn, 16 ]
-[ Rodgers_DynRH, 16 ]
-[ ZildMstrsnd_DynPed, 10 ]
-[ Rodgers_HrdRH, 8 ]
-[ Rodgers_RimClck, 8 ]
-[ ZildMstrsnd_DynClsdLH, 16 ]
-[ ZildMstrsnd_DynSmiOpn, 16 ]
-[ Rodgers_HrdLH, 8 ]
 [ CLudwigKick_Dyn, 12 ]
-[ ZildjinCrsh1_Dyn, 8 ]
-[ SabHHXEvo20_Bell, 16 ]
 [ CLudwigTom1_DynLH, 16 ]
-[ CLudwigTom2_DynLH, 16 ]
 [ CLudwigTom1_DynRH, 16 ]
+[ CLudwigTom2_DynLH, 16 ]
 [ CLudwigTom2_DynRH, 16 ]
 [ Rodgers_DynLH, 16 ]
-[ ZildjinCrsh2_Dyn, 8 ]
+[ Rodgers_DynRH, 16 ]
+[ Rodgers_HrdLH, 8 ]
+[ Rodgers_HrdRH, 8 ]
+[ Rodgers_RimClck, 8 ]
+[ SabHHXEvo20_Bell, 16 ]
+[ SabHHXEvo20_Dyn, 16 ]
+[ ZildMstrsnd_DynClsdLH, 16 ]
 [ ZildMstrsnd_DynClsdRH, 16 ]
 [ ZildMstrsnd_DynOpn, 16 ]
+[ ZildMstrsnd_DynPed, 10 ]
+[ ZildMstrsnd_DynSmiOpn, 16 ]
+[ ZildjinCrsh1_Dyn, 8 ]
+[ ZildjinCrsh2_Dyn, 8 ]
 */
 p = Platform.userHomeDir +/+ "Projects/supercollider/samples/CLudwig/";
 PathName.new(path: p).filesDo({ | item |
@@ -153,10 +153,6 @@ however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
     )
 );
 
-~playDrums.value(patterns: ~dnb, bpm: 174).play;
-)
-
-(
 ~swing = (
     \rhythm: (
         \CLudwigKick_Dyn: (
@@ -226,5 +222,12 @@ however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
 	)
 );
 
-~playDrums.value(patterns: ~swing, bpm: 180, bars: 4).play;
+x = ~playDrums.value(patterns: ~dnb, bpm: 174);
+y = ~playDrums.value(patterns: ~swing, bpm: 180, bars: 4);
 )
+
+x.play;
+y.play;
+
+y.free;
+
