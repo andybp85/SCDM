@@ -18,10 +18,27 @@ s.boot;
     numbers;
 };
 
-~drums = Dictionary.new(n: 19);
-~weights = Dictionary.new(n: 16);
-/* DRUM NAMES
--> Set[ SabHHXEvo20_Dyn, Rodgers_DynRH, ZildMstrsnd_DynPed, Rodgers_HrdRH, Rodgers_RimClck, ZildMstrsnd_DynClsdLH, ZildMstrsnd_DynSmiOpn, Rodgers_HrdLH, CLudwigKick_Dyn, ZildjinCrsh1_Dyn, SabHHXEvo20_Bell, CLudwigTom1_DynLH, CLudwigTom2_DynLH, CLudwigTom1_DynRH, CLudwigTom2_DynRH, Rodgers_DynLH, ZildjinCrsh2_Dyn, ZildMstrsnd_DynClsdRH, ZildMstrsnd_DynOpn ]
+~kit = Dictionary.new(n: 19);
+/* DRUMS, Dyn Levels
+[ SabHHXEvo20_Dyn, 16 ]
+[ Rodgers_DynRH, 16 ]
+[ ZildMstrsnd_DynPed, 10 ]
+[ Rodgers_HrdRH, 8 ]
+[ Rodgers_RimClck, 8 ]
+[ ZildMstrsnd_DynClsdLH, 16 ]
+[ ZildMstrsnd_DynSmiOpn, 16 ]
+[ Rodgers_HrdLH, 8 ]
+[ CLudwigKick_Dyn, 12 ]
+[ ZildjinCrsh1_Dyn, 8 ]
+[ SabHHXEvo20_Bell, 16 ]
+[ CLudwigTom1_DynLH, 16 ]
+[ CLudwigTom2_DynLH, 16 ]
+[ CLudwigTom1_DynRH, 16 ]
+[ CLudwigTom2_DynRH, 16 ]
+[ Rodgers_DynLH, 16 ]
+[ ZildjinCrsh2_Dyn, 8 ]
+[ ZildMstrsnd_DynClsdRH, 16 ]
+[ ZildMstrsnd_DynOpn, 16 ]
 */
 p = Platform.userHomeDir +/+ "Projects/samples/CLudwig/";
 PathName.new(path: p).filesDo({ | item |
@@ -29,17 +46,10 @@ PathName.new(path: p).filesDo({ | item |
     var dynData = fname.findRegexp("[0-9]{2}").last;
     var splitAt = dynData[0];
     var name = fname.copyRange(0, splitAt - 1).replace("-", "_").replace(" ", "").asSymbol;
-    var samples = ~drums.atFail(name, { List.new });
+    var samples = ~kit.atFail(name, { List.new });
     var buf = Buffer.read(s, item.fullPath );
-    ~drums.put(name.asSymbol, samples.add(buf));
+    ~kit.put(name.asSymbol, samples.add(buf));
 });
-
-~drums.keys.do({ |key|
-    ~weights.put(key, ~calcWeights.value(~drums[key].size).reverse);
-});
-
-~drums.postln;
-~weights.postln;
 
 SynthDef(\player, { arg  out = 0, bufnum;
     Out.ar( out,
@@ -48,26 +58,24 @@ SynthDef(\player, { arg  out = 0, bufnum;
 }).add;
 )
 
-
-
 (
 TempoClock.default.tempo = 174 / 60;
 // PLAYER
 ~kick = Pbind(
     \instrument, \player,
-    \bufnum, Pwrand(~drums.at(\CLudwigKick_Dyn), ~weights.at(\CLudwigKick_Dyn), 2),
+    \bufnum, Pwrand(~kit.at(\CLudwigKick_Dyn), ~weights.at(\CLudwigKick_Dyn), 2),
     \dur, Pseq([2.5, 1.5], 2)
 );
 
 ~snare = Pbind(
     \instrument, \player,
-    \bufnum, Pwrand(~drums.at(\Rodgers_DynRH), ~weights.at(\Rodgers_DynRH), 4),
+    \bufnum, Pwrand(~kit.at(\Rodgers_DynRH), ~weights.at(\Rodgers_DynRH), 4),
     \dur, Pseq([Rest(1), 1, Rest(1), 1], 4)
 );
 
 ~hats = Pbind(
     \instrument, \player,
-    \bufnum, Pwrand(~drums.at(\ZildMstrsnd_DynClsdRH), ~weights.at(\ZildMstrsnd_DynClsdRH), 8),
+    \bufnum, Pwrand(~kit.at(\ZildMstrsnd_DynClsdRH), ~weights.at(\ZildMstrsnd_DynClsdRH), 8),
     \dur, 0.5
 );
 )
@@ -75,21 +83,134 @@ TempoClock.default.tempo = 174 / 60;
 p = Ppar([~kick, ~snare, ~hats], 16).play;
 p.stop;
 
+
+(
+/*
+PLAY DRUMS
+*/
+~playDrums = { | patterns, bpm = 120, bars = 8, length = inf |
+    var rhythmKit = patterns[\rhythm];
+    var fillKit = patterns[if(patterns[\fill].isNil) { \rhythm } { \fill }];
+    var rhythm = Ppar(rhythmKit.keys.collect({ | key |
+        var dynamics = rhythmKit[key][\dynamics];
+        var repeats = rhythmKit[key][\repeats];
+        Pbind(
+            \instrument, \player,
+            \bufnum, Pwrand(
+                ~kit[key].reverse.copyRange(dynamics[\hardest], dynamics[\softest]),
+                dynamics[\weights],
+                repeats
+            ),
+            \dur, Pseq(rhythmKit[key][\seq], repeats)
+        );
+    }), bars - 1);
+    var fill = Ppar(fillKit.keys.collect({ | key |
+        var dynamics = fillKit[key][\dynamics];
+        var repeats = fillKit[key][\repeats];
+        Pbind(
+            \instrument, \player,
+            \bufnum, Pwrand(
+                ~kit[key].reverse.copyRange(dynamics[\hardest], dynamics[\softest]),
+                dynamics[\weights],
+                repeats
+            ),
+            \dur, Pseq(fillKit[key][\seq], repeats)
+        );
+    }), 1);
+    TempoClock.default.tempo = bpm / 60;
+    Pseq([rhythm, fill], length);
+};
+)
+
+(
+~dnb = (
+    \rhythm: (
+        \CLudwigKick_Dyn: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 2,
+                \weights: ~calcWeights.value(3)
+            ),
+            \seq: [2.5, 1.5],
+            \repeats: 2
+        ),
+        \Rodgers_DynLH: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 2,
+                \weights: ~calcWeights.value(3)
+            ),
+            \seq: [Rest(1), 1, Rest(1), 1],
+            \repeats: 4
+        ),
+        \ZildMstrsnd_DynClsdRH: (
+            \dynamics: (
+                \hardest: 4,
+                \softest: 6,
+                \weights: ~calcWeights.value(3)
+            ),
+            \seq: [0.5],
+            \repeats: 8
+        )
+    )
+);
+
+~playDrums.value(patterns: ~dnb, bpm: 174).play;
+)
+
+(
+~swing = (
+    \rhythm: (
+        \CLudwigKick_Dyn: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 2,
+                \weights: ~calcWeights.value(3)
+            ),
+            \seq: [1],
+            \repeats: 4
+        ),
+        \Rodgers_DynLH: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 2,
+                \weights: ~calcWeights.value(3)
+            ),
+            \seq: [Rest(1), 1, Rest(1), 1],
+            \repeats: 4
+        ),
+        \ZildMstrsnd_DynClsdRH: (
+            \dynamics: (
+                \hardest: 4,
+                \softest: 6,
+                \weights: ~calcWeights.value(3)
+            ),
+            \seq: [1, Rest(0.5), 0.5],
+            \repeats: 6
+        ),
+        \ZildMstrsnd_DynSmiOpn: (
+            \dynamics: (
+                \hardest: 4,
+                \softest: 6,
+                \weights: ~calcWeights.value(3)
+            ),
+            \seq: [Rest(1), 0.5, Rest(0.5)],
+            \repeats: 6
+        ),
+    )
+);
+
+~playDrums.value(patterns: ~swing, bpm: 120).play;
+)
+
 (
 // CLEANUP
-~drums.keys.do({ | item |
-    ~drums.at(item).do({ | i |
+~kit.keys.do({ | item |
+    ~kit.at(item).do({ | i |
         i.free;
     });
 });
 
-~drums.postln;
+~kit.postln;
 
-~weights.keys.do({ | item |
-    ~weights.at(item).do({ | i |
-        i.free;
-    });
-});
-
-~weights.postln;
 )
