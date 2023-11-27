@@ -73,6 +73,7 @@ SynthDef(\player, { arg  out = 0, bufnum;
 
 
 (
+t = TempoClock.new(140/60);
 /*
 PLAY DRUMS
 
@@ -115,7 +116,7 @@ however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
 			\dur, if (fillKit[key][\seq].isArray) { Pseq(fillKit[key][\seq], repeats) } { fillKit[key][\seq] }
         );
     }), 1);
-    TempoClock.default.tempo = bpm / 60;
+    t.tempo = bpm / 60;
     Pseq([rhythm, fill], length);
 };
 )
@@ -221,13 +222,12 @@ however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
         )
 	)
 );
+)
 
 x = ~playDrums.value(patterns: ~dnb, bpm: 174);
 y = ~playDrums.value(patterns: ~swing, bpm: 180, bars: 4);
-)
-
-x.play;
-y.play;
+x.play(t);
+y.play(t);
 
 y.free;
 
