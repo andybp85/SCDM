@@ -42,7 +42,10 @@ s.boot;
 [ ZildjinCrsh1_Dyn, 8 ]
 [ ZildjinCrsh2_Dyn, 8 ]
 */
-p = Platform.userHomeDir +/+ "Projects/supercollider/samples/CLudwig/";
+
+// drum kit available here: https://www.analoguedrums.com/products/bigmono/
+// change this to point to your kit
+p = Platform.userHomeDir +/+ "Projects/supercollider/CLudwig/";
 PathName.new(path: p).filesDo({ | item |
     var fname = item.fileName.split($.)[0];
     var dynData = fname.findRegexp("[0-9]{2}").last;
@@ -61,6 +64,13 @@ SynthDef(\player, { arg  out = 0, bufnum;
 )
 
 (
+// based on https://youtu.be/5Adj-khTHl8?si=txfjTJ4ZdZkbc6Ha
+~t = TempoClock.new(120/60).permanent_(true);
+~postBeat = {~t.beats; 1;};
+~t.schedAbs(~t.nextBar, {~postBeat.value});
+)
+
+(
 // CLEANUP
 ~kit.keys.do({ | item |
     ~kit.at(item).do({ | i |
@@ -71,9 +81,7 @@ SynthDef(\player, { arg  out = 0, bufnum;
 ~kit.postln;
 )
 
-
 (
-t = TempoClock.new(140/60);
 /*
 PLAY DRUMS
 
@@ -82,7 +90,7 @@ patterns: also see below
 \dynamics: pick the drum hits the samples, 0 being hardest
 \hardest, \softest: see List.copyRange
 \weights: used by Pwrand to pick samples to play, see docs. helper ~calcWeights above
-\seq: canb either be an array to be passed to Pseq, or a completely different sequence
+\seq: canb either be an array to be passed to Pseq, or a completely different sequence (WIIP)
 \repeats: used by Pwrand (and Pseq if \seq is an array)
 \fill: genrally turnaround. can be nil. same spec as above. will be played once at the end of
 however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
@@ -113,10 +121,11 @@ however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
                 dynamics[\weights],
                 repeats
             ),
-			\dur, if (fillKit[key][\seq].isArray) { Pseq(fillKit[key][\seq], repeats) } { fillKit[key][\seq] }
+            // TODO: get other sequences to work
+			\dur, if (fillKit[key][\seq].isArray) { Pseq(fillKit[key][\seq], repeats) } { fillKit[key][\seq] }.postln;
         );
     }), 1);
-    t.tempo = bpm / 60;
+    ~t.tempo = bpm / 60;
     Pseq([rhythm, fill], length);
 };
 )
@@ -160,9 +169,9 @@ however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
             \dynamics: (
                 \hardest: 0,
                 \softest: 1,
-                \weights: ~calcWeights.value(1)
+                \weights: ~calcWeights.value(2)
             ),
-            \seq: [1],
+            \seq: [1, Rest(1)],
             \repeats: 4
         ),
         \Rodgers_DynLH: (
@@ -203,6 +212,47 @@ however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
             \seq: [1],
             \repeats: 4
         ),
+        \Rodgers_HrdLH: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 6,
+                \weights: 7.collect({1/7})
+            ),
+            \seq: [Rest(1), 0.3, Rest(1), 0.5],
+            \repeats: 4
+        ),
+		\Rodgers_HrdRH: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 6,
+                \weights: 7.collect({1/7})
+            ),
+            \seq: [Rest(2), 0.5, 0.3, Rest(1)],
+            \repeats: 4
+        ),
+        \ZildjinCrsh1_Dyn: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 0,
+                \weights: [1]
+            ),
+            \seq: [Rest(3), 1],
+            \repeats: 2
+        )
+	)
+);
+
+~rock = (
+    \rhythm: (
+        \CLudwigKick_Dyn: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 1,
+                \weights: ~calcWeights.value(2)
+            ),
+            \seq: [1, Rest(1)],
+            \repeats: 4
+        ),
         \Rodgers_DynLH: (
             \dynamics: (
                 \hardest: 1,
@@ -212,22 +262,70 @@ however many bars are spec'd (i.e. if bars = 8 it'll play 7x\rhythm and 1x\fill)
             \seq: [Rest(1), 1, Rest(1), 1],
             \repeats: 4
         ),
-		\Rodgers_DynLH: (
+        \ZildMstrsnd_DynOpn: (
             \dynamics: (
-                \hardest: 1,
-                \softest: 2,
-                \weights: ~calcWeights.value(2)
+                \hardest: 6,
+                \softest: 8,
+                \weights: ~calcWeights.value(3)
             ),
-            \seq: Prand(~kit[\Rodgers_DynLH], 6)
+            \seq: [0.5],
+            \repeats: 8
         )
-	)
+    ),
+    \fill: (
+        \CLudwigKick_Dyn: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 1,
+                \weights: ~calcWeights.value(1)
+            ),
+            \seq: [1],
+            \repeats: 4
+        ),
+        \Rodgers_HrdLH: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 6,
+                \weights: 7.collect({1/7})
+            ),
+            \seq: [Rest(0.5), 0.25, Rest(0.25), 0.25, 0.25],
+            \repeats: 8
+        ),
+        \Rodgers_HrdRH: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 6,
+                \weights: 7.collect({1/7})
+            ),
+            \seq: [0.25, 0.25, Rest(0.25), 0.25, Rest(0.5)],
+            \repeats: 8
+        ),
+        \ZildjinCrsh1_Dyn: (
+            \dynamics: (
+                \hardest: 0,
+                \softest: 0,
+                \weights: [1]
+            ),
+            \seq: [Rest(3), 1],
+            \repeats: 2
+        )
+    )
 );
+
 )
 
-x = ~playDrums.value(patterns: ~dnb, bpm: 174);
-y = ~playDrums.value(patterns: ~swing, bpm: 180, bars: 4);
-x.play(t);
-y.play(t);
+(
+Pdef(\drums).clear;
+Pdef(\drums).quant_([8]);
+p = Pdef(\drums);
+)
 
-y.free;
+p.play(~t);
+p.stop;
+
+Pdef(\drums, ~playDrums.value(patterns: ~dnb, bpm: 174));
+Pdef(\drums, ~playDrums.value(patterns: ~swing, bpm: 180, bars: 8));
+Pdef(\drums, ~playDrums.value(patterns: ~rock, bpm: 120, bars: 8));
+
+
 
